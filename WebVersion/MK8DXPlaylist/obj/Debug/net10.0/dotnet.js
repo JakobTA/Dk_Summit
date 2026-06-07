@@ -5,7 +5,7 @@ var e=!1;const t=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,
   "mainAssemblyName": "MK8DXPlaylist",
   "applicationEnvironment": "Development",
   "resources": {
-    "hash": "sha256-xh5hu9mr8rNDAjOlUd1bd9sw0ZJQP57gU+IioQD5vx0=",
+    "hash": "sha256-W5sFGjg9WgIRyNyMhLff1iPIbixhuHrXlV0+p4R+n9c=",
     "jsModuleNative": [
       {
         "name": "dotnet.native.rjbmzc4jpg.js"
@@ -1260,16 +1260,16 @@ var e=!1;const t=async()=>WebAssembly.validate(new Uint8Array([0,97,115,109,1,0,
       },
       {
         "virtualPath": "MK8DXPlaylist.wasm",
-        "name": "MK8DXPlaylist.x0mrhv6axd.wasm",
-        "hash": "sha256-v+qgPAp8slmeVgnNS0Cv3v1Dnc4bXdbfpKi1/ZCVPa8=",
+        "name": "MK8DXPlaylist.t3gnjg2pm4.wasm",
+        "hash": "sha256-SURadOM0XKMtypRNEjOCpXBBbBGSbCklOfV516gJquA=",
         "cache": "force-cache"
       }
     ],
     "pdb": [
       {
         "virtualPath": "MK8DXPlaylist.pdb",
-        "name": "MK8DXPlaylist.26wt053wgr.pdb",
-        "hash": "sha256-GqybRglOAO9OJSROFDqkV7LQq6iIUjb7wtQEcR2HVTc=",
+        "name": "MK8DXPlaylist.jmu90rzjc3.pdb",
+        "hash": "sha256-Sz8seocMCGoqiQafiAWA6/6+9zHpHLCsHqFRRLO0/tc=",
         "cache": "force-cache"
       }
     ],

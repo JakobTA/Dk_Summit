@@ -1,6 +1,7 @@
 @page "/editor/{PlaylistId}"
 @inject PlaylistService Service
 @inject NavigationManager Nav
+@inject IDialogService DialogService
 @implements IDisposable
 
 <PageTitle>Edit Playlist</PageTitle>
@@ -16,21 +17,16 @@ else
     <MudAppBar Elevation="1" Color="Color.Primary">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
                        Color="Color.Inherit"
-                       OnClick="@(() => Nav.NavigateTo("/"))" />
-        <MudTextField @bind-Value="_name"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      Style="max-width: 280px; background: rgba(255,255,255,0.15); border-radius: 4px;"
-                      DebounceInterval="600"
-                      OnDebounceIntervalElapsed="SaveName"
-                      Class="mx-2" />
-        <MudSpacer />
+                       OnClick="GoBack" />
+        <MudText Typo="Typo.h6" Style="font-weight: 600; flex: 1;" Class="mx-2">
+            @(_playlist.Name == "" ? "New Playlist" : _playlist.Name)
+        </MudText>
         <MudChip T="string" Color="Color.Secondary" Size="Size.Small">
             @_playlist.TrackIds.Count / @TrackData.AllTracks.Count
         </MudChip>
     </MudAppBar>
 
-    <div style="padding-top: 64px;">
+    <div style="padding-top: 64px; padding-bottom: 88px;">
         <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-0">
             <MudTabs Elevation="0" Rounded="false" Centered="true" Color="Color.Primary"
                      @bind-ActivePanelIndex="_tabIndex">
@@ -90,6 +86,12 @@ else
             </div>
         </MudContainer>
     </div>
+
+    <MudFab Color="Color.Primary"
+            StartIcon="@(_isNew ? Icons.Material.Filled.Add : Icons.Material.Filled.Save)"
+            Label="@(_isNew ? "Create" : "Save")"
+            Style="position: fixed; bottom: 24px; right: 24px;"
+            OnClick="OpenSaveDialog" />
 }
 
 @code {
@@ -97,7 +99,7 @@ else
     public string PlaylistId { get; set; } = "";
 
     private Playlist? _playlist;
-    private string _name = "";
+    private bool _isNew;
     private int _tabIndex = 0;
 
     private IEnumerable<string> FilteredCupNames => TrackData.AllCupNames.Where(cup =>
@@ -121,15 +123,35 @@ else
             Nav.NavigateTo("/");
             return;
         }
-        _name = _playlist.Name;
+        _isNew = _playlist.Name == "";
     }
 
     public void Dispose() => Service.OnChange -= StateHasChanged;
 
-    private async Task SaveName()
+    private async Task GoBack()
     {
-        if (_playlist is not null && _name != _playlist.Name)
-            await Service.RenamePlaylistAsync(PlaylistId, _name);
+        if (_isNew)
+            await Service.DeletePlaylistAsync(PlaylistId);
+        Nav.NavigateTo("/");
+    }
+
+    private async Task OpenSaveDialog()
+    {
+        if (_playlist is null) return;
+        var parameters = new DialogParameters<SavePlaylistDialog>
+        {
+            { x => x.TrackCount, _playlist.TrackIds.Count },
+            { x => x.IsNew, _isNew },
+            { x => x.InitialName, _playlist.Name }
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<SavePlaylistDialog>("", parameters, options);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled && result.Data is string name)
+        {
+            await Service.RenamePlaylistAsync(PlaylistId, name);
+            Nav.NavigateTo("/");
+        }
     }
 
     private async Task ToggleTrack(string trackId)

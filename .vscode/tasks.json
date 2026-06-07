@@ -2,16 +2,21 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "kill: dotnet",
+      "type": "shell",
+      "command": "Get-Process -Name dotnet -ErrorAction SilentlyContinue | Stop-Process -Force; Start-Sleep -Milliseconds 500",
+      "presentation": { "reveal": "never", "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
       "label": "run: MK8DXPlaylist",
       "type": "shell",
       "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "${workspaceFolder}/WebVersion/MK8DXPlaylist/MK8DXPlaylist.csproj",
-        "--launch-profile",
-        "http"
-      ],
+      "args": ["run", "--launch-profile", "http"],
+      "options": {
+        "cwd": "${workspaceFolder}/WebVersion/MK8DXPlaylist"
+      },
+      "dependsOn": "kill: dotnet",
       "isBackground": true,
       "problemMatcher": {
         "pattern": {

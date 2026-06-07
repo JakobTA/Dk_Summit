@@ -1,0 +1,9 @@
+# Build outputs
+**/bin/
+**/obj/
+
+# VS Code Chrome dev profile (auto-created by launch config)
+.vscode/chrome-dev-profile/
+
+# User-specific VS Code settings
+.vscode/*.log

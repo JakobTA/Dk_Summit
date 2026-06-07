@@ -84,7 +84,7 @@
 
     private async Task CreatePlaylist()
     {
-        var id = await Service.CreatePlaylistAsync("New Playlist");
+        var id = await Service.CreatePlaylistAsync("");
         Nav.NavigateTo($"/editor/{id}");
     }
 
