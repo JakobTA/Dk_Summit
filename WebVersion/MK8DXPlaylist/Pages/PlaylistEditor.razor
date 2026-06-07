@@ -1,0 +1,146 @@
+@page "/editor/{PlaylistId}"
+@inject PlaylistService Service
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Edit Playlist</PageTitle>
+
+@if (_playlist is null)
+{
+    <div class="d-flex justify-center align-center" style="height: 100vh;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </div>
+}
+else
+{
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                       Color="Color.Inherit"
+                       OnClick="@(() => Nav.NavigateTo("/"))" />
+        <MudTextField @bind-Value="_name"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Style="max-width: 280px; background: rgba(255,255,255,0.15); border-radius: 4px;"
+                      DebounceInterval="600"
+                      OnDebounceIntervalElapsed="SaveName"
+                      Class="mx-2" />
+        <MudSpacer />
+        <MudChip T="string" Color="Color.Secondary" Size="Size.Small">
+            @_playlist.TrackIds.Count / @TrackData.AllTracks.Count
+        </MudChip>
+    </MudAppBar>
+
+    <div style="padding-top: 64px;">
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-0">
+            <MudTabs Elevation="0" Rounded="false" Centered="true" Color="Color.Primary"
+                     @bind-ActivePanelIndex="_tabIndex">
+                <MudTabPanel Text="All" />
+                <MudTabPanel Text="Base Game" />
+                <MudTabPanel Text="Booster Pass" />
+            </MudTabs>
+
+            <div class="pa-2">
+                @foreach (var cupName in FilteredCupNames)
+                {
+                    var cup = cupName;
+                    var tracks = TrackData.AllTracks.Where(t => t.Cup == cup).ToList();
+                    var selectedCount = tracks.Count(t => _playlist.TrackIds.Contains(t.Id));
+                    var allSelected = selectedCount == tracks.Count;
+
+                    <div class="mb-1">
+                        <div class="d-flex align-center px-2 py-1"
+                             style="background: rgba(255,255,255,0.05); border-radius: 8px 8px 0 0;">
+                            <div class="flex-grow-1">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600; line-height: 1.3;">
+                                    @cup
+                                </MudText>
+                                @if (tracks.First().IsBoosterCourse)
+                                {
+                                    <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Class="ml-1">
+                                        Booster Course Pass
+                                    </MudChip>
+                                }
+                            </div>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">
+                                @selectedCount / @tracks.Count
+                            </MudText>
+                            <MudTooltip Text="@(allSelected ? "Deselect all" : "Select all")">
+                                <MudIconButton Icon="@(allSelected ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank)"
+                                               Size="Size.Small"
+                                               Color="@(allSelected ? Color.Primary : Color.Default)"
+                                               OnClick="@(() => ToggleAllInCup(cup, !allSelected))" />
+                            </MudTooltip>
+                        </div>
+                        @foreach (var track in tracks)
+                        {
+                            var t = track;
+                            <div class="d-flex align-center px-3 py-1"
+                                 style="border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;"
+                                 @onclick="@(() => ToggleTrack(t.Id))">
+                                <MudCheckBox T="bool"
+                                             Value="@(_playlist.TrackIds.Contains(t.Id))"
+                                             ValueChanged="@(_ => ToggleTrack(t.Id))"
+                                             Color="@(t.IsBoosterCourse ? Color.Secondary : Color.Primary)"
+                                             @onclick:stopPropagation="true" />
+                                <MudText Typo="Typo.body2" Class="ml-1">@t.Name</MudText>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </MudContainer>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string PlaylistId { get; set; } = "";
+
+    private Playlist? _playlist;
+    private string _name = "";
+    private int _tabIndex = 0;
+
+    private IEnumerable<string> FilteredCupNames => TrackData.AllCupNames.Where(cup =>
+    {
+        var isBooster = TrackData.AllTracks.First(t => t.Cup == cup).IsBoosterCourse;
+        return _tabIndex switch
+        {
+            1 => !isBooster,
+            2 => isBooster,
+            _ => true
+        };
+    });
+
+    protected override async Task OnInitializedAsync()
+    {
+        Service.OnChange += StateHasChanged;
+        await Service.InitializeAsync();
+        _playlist = Service.GetPlaylist(PlaylistId);
+        if (_playlist is null)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+        _name = _playlist.Name;
+    }
+
+    public void Dispose() => Service.OnChange -= StateHasChanged;
+
+    private async Task SaveName()
+    {
+        if (_playlist is not null && _name != _playlist.Name)
+            await Service.RenamePlaylistAsync(PlaylistId, _name);
+    }
+
+    private async Task ToggleTrack(string trackId)
+    {
+        await Service.ToggleTrackAsync(PlaylistId, trackId);
+        _playlist = Service.GetPlaylist(PlaylistId);
+    }
+
+    private async Task ToggleAllInCup(string cupName, bool select)
+    {
+        await Service.SetAllTracksInCupAsync(PlaylistId, cupName, select);
+        _playlist = Service.GetPlaylist(PlaylistId);
+    }
+}

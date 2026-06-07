@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Launch MK8DX Playlist",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5048",
+      "webRoot": "${workspaceFolder}/WebVersion/MK8DXPlaylist/wwwroot",
+      "preLaunchTask": "run: MK8DXPlaylist"
+    }
+  ]
+}

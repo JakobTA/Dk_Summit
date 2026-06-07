@@ -1,0 +1,128 @@
+@page "/randomizer/{PlaylistId}"
+@inject PlaylistService Service
+@inject NavigationManager Nav
+@implements IDisposable
+
+<PageTitle>Randomizer</PageTitle>
+
+@if (_state is null)
+{
+    <div class="d-flex justify-center align-center" style="height: 100vh;">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </div>
+}
+else
+{
+    <MudAppBar Elevation="1" Color="Color.Primary">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                       Color="Color.Inherit"
+                       OnClick="GoBack" />
+        <MudText Typo="Typo.h6" Style="font-weight: 700; flex: 1;">
+            @_state.PlaylistName
+        </MudText>
+        <MudTooltip Text="Restart session">
+            <MudIconButton Icon="@Icons.Material.Filled.Refresh"
+                           Color="Color.Inherit"
+                           OnClick="Restart" />
+        </MudTooltip>
+    </MudAppBar>
+
+    <div style="padding-top: 64px;">
+        <MudContainer MaxWidth="MaxWidth.Small" Class="pa-4">
+
+            <div class="d-flex align-center justify-space-between mb-1">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    Track @_state.TrackNumber of @_state.TotalTracks
+                </MudText>
+                <MudText Typo="Typo.caption" Color="Color.Secondary">
+                    @_state.TracksRemaining remaining
+                </MudText>
+            </div>
+            <MudProgressLinear Color="Color.Primary"
+                               Value="@(100.0 * _state.TrackNumber / _state.TotalTracks)"
+                               Class="mb-6" />
+
+            @if (_state.IsDone)
+            {
+                <MudPaper Elevation="4" Class="pa-8 d-flex flex-column align-center" Style="border-radius: 16px; gap: 16px;">
+                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Secondary" Style="font-size: 4rem;" />
+                    <MudText Typo="Typo.h4" Style="font-weight: 700;">Done!</MudText>
+                    <MudText Typo="Typo.body1" Color="Color.Secondary" Align="Align.Center">
+                        All @_state.TotalTracks tracks played.
+                    </MudText>
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               StartIcon="@Icons.Material.Filled.Replay"
+                               OnClick="Restart"
+                               FullWidth="true">
+                        Play Again
+                    </MudButton>
+                </MudPaper>
+            }
+            else
+            {
+                <MudPaper Elevation="4" Class="pa-6 d-flex flex-column align-center" Style="border-radius: 16px; gap: 12px;">
+                    <MudText Typo="Typo.overline" Color="Color.Secondary">Now Racing</MudText>
+                    <MudText Class="track-name-display" Style="color: white;">
+                        @_state.CurrentTrack?.Name
+                    </MudText>
+                    <MudText Typo="Typo.subtitle1"
+                             Style="@(_state.CurrentTrack?.IsBoosterCourse == true ? "color: #FFB300;" : "color: #EF9A9A;")">
+                        @_state.CurrentTrack?.Cup
+                    </MudText>
+                    <MudDivider Class="w-100" />
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               EndIcon="@(_state.TracksRemaining == 0 ? Icons.Material.Filled.Flag : Icons.Material.Filled.SkipNext)"
+                               OnClick="Next"
+                               FullWidth="true"
+                               Size="Size.Large">
+                        @(_state.TracksRemaining == 0 ? "Finish" : "Next Track")
+                    </MudButton>
+                </MudPaper>
+            }
+
+            <div class="d-flex justify-center mt-4">
+                <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="GoBack">
+                    Back to Playlists
+                </MudButton>
+            </div>
+        </MudContainer>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public string PlaylistId { get; set; } = "";
+
+    private RandomizerState? _state;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Service.OnChange += OnServiceChanged;
+        await Service.InitializeAsync();
+        _state = Service.RandomizerState;
+        if (_state is null)
+        {
+            Nav.NavigateTo("/");
+        }
+    }
+
+    public void Dispose() => Service.OnChange -= OnServiceChanged;
+
+    private void OnServiceChanged()
+    {
+        _state = Service.RandomizerState;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void Next() => Service.NextTrack();
+
+    private void Restart() => Service.ResetRandomizer();
+
+    private void GoBack()
+    {
+        Service.ClearRandomizer();
+        Nav.NavigateTo("/");
+    }
+}

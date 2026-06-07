@@ -1,0 +1,46 @@
+@using MudBlazor
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">How many tracks?</MudText>
+    </TitleContent>
+    <DialogContent>
+        <div class="d-flex flex-wrap gap-2 justify-center pa-2">
+            @foreach (var count in AvailableCounts)
+            {
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Primary"
+                           OnClick="@(() => Select(count))"
+                           Style="min-width: 64px;">
+                    @count
+                </MudButton>
+            }
+        </div>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Color="Color.Default">Cancel</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public int MaxTracks { get; set; }
+
+    private IEnumerable<int> AvailableCounts
+    {
+        get
+        {
+            int[] standard = { 4, 6, 8, 12, 16, 24, 32, 48 };
+            var filtered = standard.Where(c => c < MaxTracks).ToList();
+            if (!filtered.Contains(MaxTracks))
+                filtered.Add(MaxTracks);
+            return filtered;
+        }
+    }
+
+    private void Select(int count) => MudDialog.Close(DialogResult.Ok(count));
+    private void Cancel() => MudDialog.Cancel();
+}

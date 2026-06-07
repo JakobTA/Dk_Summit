@@ -1,0 +1,111 @@
+@page "/"
+@inject PlaylistService Service
+@inject NavigationManager Nav
+@inject IDialogService DialogService
+@implements IDisposable
+
+<PageTitle>MK8DX Track Playlists</PageTitle>
+
+<MudAppBar Elevation="1" Color="Color.Primary">
+    <MudText Typo="Typo.h6" Style="font-weight: 700;">MK8DX Track Playlists</MudText>
+</MudAppBar>
+
+<div style="padding-top: 64px; padding-bottom: 80px;">
+    @if (!_initialized)
+    {
+        <div class="d-flex justify-center align-center" style="height: 50vh;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (!Service.Playlists.Any())
+    {
+        <div class="d-flex flex-column align-center justify-center pa-8" style="height: 50vh; gap: 16px;">
+            <MudIcon Icon="@Icons.Material.Filled.MusicNote" Size="Size.Large" Color="Color.Secondary" Style="font-size: 4rem;" />
+            <MudText Typo="Typo.h6" Color="Color.Secondary">No playlists yet</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Default" Align="Align.Center">
+                Tap the + button to create your first track playlist.
+            </MudText>
+        </div>
+    }
+    else
+    {
+        <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-4">
+            @foreach (var playlist in Service.Playlists)
+            {
+                <MudCard Class="mb-3" Elevation="2">
+                    <MudCardContent Class="pb-0">
+                        <MudText Typo="Typo.h6" Style="font-weight: 600;">@playlist.Name</MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Secondary">
+                            @playlist.TrackIds.Count track@(playlist.TrackIds.Count == 1 ? "" : "s") selected
+                        </MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudTooltip Text="Edit playlist">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Default"
+                                           OnClick="@(() => Nav.NavigateTo($"/editor/{playlist.Id}"))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Delete playlist">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           OnClick="@(() => DeletePlaylist(playlist.Id))" />
+                        </MudTooltip>
+                        <MudSpacer />
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Secondary"
+                                   StartIcon="@Icons.Material.Filled.Shuffle"
+                                   Disabled="@(playlist.TrackIds.Count == 0)"
+                                   OnClick="@(() => OpenTrackCountDialog(playlist.Id, playlist.TrackIds.Count))">
+                            Play
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            }
+        </MudContainer>
+    }
+</div>
+
+<MudFab Color="Color.Primary"
+        StartIcon="@Icons.Material.Filled.Add"
+        Style="position: fixed; bottom: 24px; right: 24px;"
+        OnClick="CreatePlaylist" />
+
+@code {
+    private bool _initialized = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Service.OnChange += StateHasChanged;
+        await Service.InitializeAsync();
+        _initialized = true;
+    }
+
+    public void Dispose() => Service.OnChange -= StateHasChanged;
+
+    private async Task CreatePlaylist()
+    {
+        var id = await Service.CreatePlaylistAsync("New Playlist");
+        Nav.NavigateTo($"/editor/{id}");
+    }
+
+    private async Task DeletePlaylist(string id)
+    {
+        await Service.DeletePlaylistAsync(id);
+    }
+
+    private async Task OpenTrackCountDialog(string playlistId, int trackCount)
+    {
+        var parameters = new DialogParameters<TrackCountDialog>
+        {
+            { x => x.MaxTracks, trackCount }
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+        var dialog = await DialogService.ShowAsync<TrackCountDialog>("", parameters, options);
+        var result = await dialog.Result;
+        if (result is not null && !result.Canceled && result.Data is int count)
+        {
+            Service.StartRandomizer(playlistId, count);
+            Nav.NavigateTo($"/randomizer/{playlistId}");
+        }
+    }
+}
