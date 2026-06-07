@@ -18,70 +18,104 @@ else
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
                        Color="Color.Inherit"
                        OnClick="GoBack" />
-        <MudText Typo="Typo.h6" Style="font-weight: 600; flex: 1;" Class="mx-2">
-            @(_playlist.Name == "" ? "New Playlist" : _playlist.Name)
-        </MudText>
-        <MudChip T="string" Color="Color.Secondary" Size="Size.Small">
-            @_playlist.TrackIds.Count / @TrackData.AllTracks.Count
-        </MudChip>
+        @if (_searchActive)
+        {
+            <MudTextField @ref="_searchField"
+                          @bind-Value="_searchTerm"
+                          Placeholder="Search tracks…"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Immediate="true"
+                          Clearable="true"
+                          Style="flex: 1; background: rgba(255,255,255,0.15); border-radius: 4px;"
+                          Class="mx-2" />
+            <MudIconButton Icon="@Icons.Material.Filled.Close"
+                           Color="Color.Inherit"
+                           OnClick="ClearSearch" />
+        }
+        else
+        {
+            <MudText Typo="Typo.h6" Style="font-weight: 600; flex: 1;" Class="mx-2">
+                @(_playlist.Name == "" ? "New Playlist" : _playlist.Name)
+            </MudText>
+            <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Class="mr-1">
+                @_playlist.TrackIds.Count / @TrackData.AllTracks.Count
+            </MudChip>
+            <MudIconButton Icon="@Icons.Material.Filled.Search"
+                           Color="Color.Inherit"
+                           OnClick="ActivateSearch" />
+        }
     </MudAppBar>
 
     <div style="padding-top: 64px; padding-bottom: 88px;">
         <MudContainer MaxWidth="MaxWidth.Medium" Class="pa-0">
-            <MudTabs Elevation="0" Rounded="false" Centered="true" Color="Color.Primary"
-                     @bind-ActivePanelIndex="_tabIndex">
-                <MudTabPanel Text="All" />
-                <MudTabPanel Text="Base Game" />
-                <MudTabPanel Text="Booster Pass" />
-            </MudTabs>
+            @if (!_searchActive)
+            {
+                <MudTabs Elevation="0" Rounded="false" Centered="true" Color="Color.Primary"
+                         @bind-ActivePanelIndex="_tabIndex">
+                    <MudTabPanel Text="All" />
+                    <MudTabPanel Text="Base Game" />
+                    <MudTabPanel Text="Booster Pass" />
+                </MudTabs>
+            }
 
             <div class="pa-2">
-                @foreach (var cupName in FilteredCupNames)
+                @if (_searchActive && !string.IsNullOrWhiteSpace(_searchTerm) && !FilteredCupNames.Any())
                 {
-                    var cup = cupName;
-                    var tracks = TrackData.AllTracks.Where(t => t.Cup == cup).ToList();
-                    var selectedCount = tracks.Count(t => _playlist.TrackIds.Contains(t.Id));
-                    var allSelected = selectedCount == tracks.Count;
-
-                    <div class="mb-1">
-                        <div class="d-flex align-center px-2 py-1"
-                             style="background: rgba(255,255,255,0.05); border-radius: 8px 8px 0 0;">
-                            <div class="flex-grow-1">
-                                <MudText Typo="Typo.subtitle1" Style="font-weight: 600; line-height: 1.3;">
-                                    @cup
-                                </MudText>
-                                @if (tracks.First().IsBoosterCourse)
-                                {
-                                    <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Class="ml-1">
-                                        Booster Course Pass
-                                    </MudChip>
-                                }
-                            </div>
-                            <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">
-                                @selectedCount / @tracks.Count
-                            </MudText>
-                            <MudTooltip Text="@(allSelected ? "Deselect all" : "Select all")">
-                                <MudIconButton Icon="@(allSelected ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank)"
-                                               Size="Size.Small"
-                                               Color="@(allSelected ? Color.Primary : Color.Default)"
-                                               OnClick="@(() => ToggleAllInCup(cup, !allSelected))" />
-                            </MudTooltip>
-                        </div>
-                        @foreach (var track in tracks)
-                        {
-                            var t = track;
-                            <div class="d-flex align-center px-3 py-1"
-                                 style="border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;"
-                                 @onclick="@(() => ToggleTrack(t.Id))">
-                                <MudCheckBox T="bool"
-                                             Value="@(_playlist.TrackIds.Contains(t.Id))"
-                                             ValueChanged="@(_ => ToggleTrack(t.Id))"
-                                             Color="@(t.IsBoosterCourse ? Color.Secondary : Color.Primary)"
-                                             @onclick:stopPropagation="true" />
-                                <MudText Typo="Typo.body2" Class="ml-1">@t.Name</MudText>
-                            </div>
-                        }
+                    <div class="d-flex flex-column align-center justify-center pa-8" style="gap: 8px;">
+                        <MudIcon Icon="@Icons.Material.Filled.SearchOff" Color="Color.Secondary" Style="font-size: 3rem;" />
+                        <MudText Typo="Typo.body1" Color="Color.Secondary">No tracks match "@_searchTerm"</MudText>
                     </div>
+                }
+                else
+                {
+                    @foreach (var cupName in FilteredCupNames)
+                    {
+                        var cup = cupName;
+                        var tracks = TracksForCup(cup).ToList();
+                        var selectedCount = tracks.Count(t => _playlist.TrackIds.Contains(t.Id));
+                        var allSelected = selectedCount == tracks.Count;
+
+                        <div class="mb-1">
+                            <div class="d-flex align-center px-2 py-1"
+                                 style="background: rgba(255,255,255,0.05); border-radius: 8px 8px 0 0;">
+                                <div class="flex-grow-1">
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600; line-height: 1.3;">
+                                        @cup
+                                    </MudText>
+                                    @if (TrackData.AllTracks.First(t => t.Cup == cup).IsBoosterCourse)
+                                    {
+                                        <MudChip T="string" Color="Color.Secondary" Size="Size.Small" Class="ml-1">
+                                            Booster Course Pass
+                                        </MudChip>
+                                    }
+                                </div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mr-2">
+                                    @selectedCount / @tracks.Count
+                                </MudText>
+                                <MudTooltip Text="@(allSelected ? "Deselect all" : "Select all")">
+                                    <MudIconButton Icon="@(allSelected ? Icons.Material.Filled.CheckBox : Icons.Material.Filled.CheckBoxOutlineBlank)"
+                                                   Size="Size.Small"
+                                                   Color="@(allSelected ? Color.Primary : Color.Default)"
+                                                   OnClick="@(() => ToggleAllInCup(cup, !allSelected))" />
+                                </MudTooltip>
+                            </div>
+                            @foreach (var track in tracks)
+                            {
+                                var t = track;
+                                <div class="d-flex align-center px-3 py-1"
+                                     style="border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;"
+                                     @onclick="@(() => ToggleTrack(t.Id))">
+                                    <MudCheckBox T="bool"
+                                                 Value="@(_playlist.TrackIds.Contains(t.Id))"
+                                                 ValueChanged="@(_ => ToggleTrack(t.Id))"
+                                                 Color="@(t.IsBoosterCourse ? Color.Secondary : Color.Primary)"
+                                                 @onclick:stopPropagation="true" />
+                                    <MudText Typo="Typo.body2" Class="ml-1">@t.Name</MudText>
+                                </div>
+                            }
+                        </div>
+                    }
                 }
             </div>
         </MudContainer>
@@ -102,8 +136,18 @@ else
     private bool _isNew;
     private int _tabIndex = 0;
 
+    private bool _searchActive;
+    private string _searchTerm = "";
+    private MudTextField<string>? _searchField;
+    private bool _pendingFocus;
+
+    private bool IsSearching => _searchActive && !string.IsNullOrWhiteSpace(_searchTerm);
+
     private IEnumerable<string> FilteredCupNames => TrackData.AllCupNames.Where(cup =>
     {
+        if (IsSearching)
+            return TrackData.AllTracks.Any(t => t.Cup == cup && MatchesSearch(t));
+
         var isBooster = TrackData.AllTracks.First(t => t.Cup == cup).IsBoosterCourse;
         return _tabIndex switch
         {
@@ -112,6 +156,15 @@ else
             _ => true
         };
     });
+
+    private IEnumerable<Track> TracksForCup(string cup)
+    {
+        var tracks = TrackData.AllTracks.Where(t => t.Cup == cup);
+        return IsSearching ? tracks.Where(MatchesSearch) : tracks;
+    }
+
+    private bool MatchesSearch(Track t) =>
+        t.Name.Contains(_searchTerm, StringComparison.OrdinalIgnoreCase);
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,7 +179,28 @@ else
         _isNew = _playlist.Name == "";
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingFocus && _searchField is not null)
+        {
+            _pendingFocus = false;
+            await _searchField.FocusAsync();
+        }
+    }
+
     public void Dispose() => Service.OnChange -= StateHasChanged;
+
+    private void ActivateSearch()
+    {
+        _searchActive = true;
+        _pendingFocus = true;
+    }
+
+    private void ClearSearch()
+    {
+        _searchTerm = "";
+        _searchActive = false;
+    }
 
     private async Task GoBack()
     {

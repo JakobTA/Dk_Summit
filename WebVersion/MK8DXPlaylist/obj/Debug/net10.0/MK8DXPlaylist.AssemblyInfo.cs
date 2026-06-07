@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MK8DXPlaylist")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d269d95f40c75ea8373bb2df998d373c8d62f8cb")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0eb081277229c4c4d4cea6f2fa117a3b7ca0f4f2")]
 [assembly: System.Reflection.AssemblyProductAttribute("MK8DXPlaylist")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MK8DXPlaylist")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
